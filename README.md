@@ -1,1 +1,2 @@
 # MinesweeperAI
+setup the env.
