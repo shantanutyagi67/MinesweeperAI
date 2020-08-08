@@ -18,11 +18,11 @@ import javax.swing.JPanel;
 public class GUI extends JFrame{
 	private static final long serialVersionUID = 1L;
 	
-	boolean sol = false;
-	int spacing = 2;
+	public boolean sol = false, win = false, timeStart=false,pause=false;
+	int spacing = 2, move=829;
 	int size = 80;
 	boolean newGame = false,happy=true;
-	public int mx,my,x,y;
+	public int mx,my,x,y,nMine=0,nReveal=0;
 	Random rand = new Random();
 	boolean mines[][] = new boolean[9][16];
 	int neighbours[][] = new int[9][16];
@@ -43,8 +43,10 @@ public class GUI extends JFrame{
 		for(int i=0;i<9;i++) {
 			for(int j=0;j<16;j++) {
 				neighbours[i][j]=0;
-				if(rand.nextInt(100)<20)
+				if(rand.nextInt(100)<20) {
 					mines[i][j]=true;
+					nMine++;
+				}
 				else
 					mines[i][j]=false;
 				revealed[i][j] = false;
@@ -72,11 +74,37 @@ public class GUI extends JFrame{
 		this.addMouseListener(click);
 		
 	}
-	
+	int time,timer=0,temp=0;
 	public class Board extends JPanel{
 		private static final long serialVersionUID = 1L;
 		public void paintComponent(Graphics g) {
 			Graphics2D g2D = (Graphics2D) g;
+			
+			//time
+			if(!pause) {
+				g2D.setColor(Color.RED);
+				g2D.setFont(new Font("Monospaced", Font.BOLD, 80));
+				if(timeStart) {
+					timer = (int) (System.currentTimeMillis()/1000.00 - time);
+					if(timer<10)
+						g2D.drawString("00"+ Integer.toString(timer),1130,65);
+					else if(timer<100)
+						g2D.drawString("0"+ Integer.toString(timer),1130,65);
+					else
+						g2D.drawString(Integer.toString(timer),1130,65);
+				} else
+					g2D.drawString("000",1130,65);
+			} else {
+				g2D.setColor(Color.RED);
+				g2D.setFont(new Font("Monospaced", Font.BOLD, 80));
+				if(timer<10)
+					g2D.drawString("00"+ Integer.toString(timer),1130,65);
+				else if(timer<100)
+					g2D.drawString("0"+ Integer.toString(timer),1130,65);
+				else
+					g2D.drawString(Integer.toString(timer),1130,65);
+			}
+			
 			for(int i=0;i<9;i++) {
 				for(int j=0;j<16;j++) {
 					g2D.setColor(Color.GRAY);
@@ -89,7 +117,7 @@ public class GUI extends JFrame{
 						if(mines[i][j]&&sol)
 							g2D.setColor(Color.RED);
 					}
-					if(mx >= spacing+j*size+2 && mx <= (j+1)*size-spacing+3 && my >= spacing+(i+1)*size+26 && my <= 26+(i+2)*size-spacing-1 && !newGame && !revealed[i][j] )
+					if(mx >= spacing+j*size+2 && mx <= (j+1)*size-spacing+3 && my >= spacing+(i+1)*size+26 && my <= 26+(i+2)*size-spacing-1 && !newGame && !revealed[i][j] ) //mouse pointer
 						g2D.setColor(Color.LIGHT_GRAY);
 					//main squares
 					g2D.fill(new Rectangle2D.Double(spacing+j*size, spacing+(i+1)*size, size-2*spacing, size-2*spacing));
@@ -106,13 +134,25 @@ public class GUI extends JFrame{
 					else
 						g2D.draw(new Arc2D.Double(640-3+10-20-1.5,20+size/2-3-15+3, 30, 30, 15, 150, Arc2D.OPEN));
 					
-					if(flagged[i][j]) {
+					if((flagged[i][j]&&!newGame)||(flagged[i][j]&&newGame&&mines[i][j])) {
 						g2D.setColor(Color.BLACK);
 						g2D.fill(new Rectangle2D.Double(4+spacing+j*size+size/2-6, spacing+(i+1)*size+10, 6, size-20));
 						g2D.fill(new Rectangle2D.Double(4+spacing+j*size+20-3, spacing+(i+1)*size-25+size, size-40, 15));
 						g2D.fill(new Rectangle2D.Double(spacing+j*size+20-6, spacing+(i+1)*size-30+size/2, size-50, 20));
 						g2D.setColor(Color.RED);
 						g2D.fill(new Rectangle2D.Double(3+spacing+j*size+20-6, 3+spacing+(i+1)*size-30+size/2, size-50-6-3, 20-6));
+					}
+					if(flagged[i][j]&&newGame&&!mines[i][j]) {
+						g2D.setColor(Color.BLACK);
+						g2D.fill(new Ellipse2D.Double(spacing+j*size+size/4, spacing+(i+1)*size+size/4, size/2, size/2));
+						g2D.setStroke(new BasicStroke(6f));
+						g2D.draw(new Line2D.Double(j*size+spacing+size/2-20-1.5, (i+1)*size+spacing+size/2-20-1.5, j*size+spacing+size/2+20-1.5, (i+1)*size+spacing+size/2+20-1.5));
+						g2D.draw(new Line2D.Double(j*size+spacing+size/2+20-1.5, (i+1)*size+spacing+size/2-20-1.5, j*size+spacing+size/2-20-1.5, (i+1)*size+spacing+size/2+20-1.5));
+						g2D.fill(new Rectangle2D.Double(spacing+j*size+size/2-3-1.5, spacing+(i+1)*size+10-1.5, 6, size-20));
+						g2D.fill(new Rectangle2D.Double(spacing+j*size+size/2-30-1.5, spacing+(i+1)*size+size/2-3-1.5,size-20,6));
+						g2D.setColor(Color.RED);
+						g2D.draw(new Line2D.Double(4*spacing+j*size, 4*spacing+(i+1)*size,4*spacing+j*size+size-8*spacing, 4*spacing+(i+1)*size+size-8*spacing));
+						g2D.draw(new Line2D.Double(4*spacing+j*size+size-8*spacing, 4*spacing+(i+1)*size,4*spacing+j*size, 4*spacing+(i+1)*size+size-8*spacing));
 					}
 					if(revealed[i][j]) {
 						if(!mines[i][j] && neighbours[i][j]!=0) {
@@ -135,7 +175,7 @@ public class GUI extends JFrame{
 							g2D.setFont(new Font("TimesRoman", Font.BOLD, 40));
 							g2D.drawString(Integer.toString(neighbours[i][j]),spacing+j*size+size/2-15, spacing+(i+1)*size+size/2+10);
 						}
-						else if(mines[i][j]){
+						else if(mines[i][j]&&!flagged[i][j]){
 							g2D.setColor(Color.BLACK);
 							g2D.fill(new Ellipse2D.Double(spacing+j*size+size/4, spacing+(i+1)*size+size/4, size/2, size/2));
 							g2D.setStroke(new BasicStroke(6f));
@@ -146,6 +186,16 @@ public class GUI extends JFrame{
 						}
 					}
 				}
+			}
+			//win
+			if(win) {
+				move-=5;
+				if(move<=300) move=300;
+				g2D.setColor(Color.BLACK);
+				g2D.fill(new Rectangle2D.Double(0, move, 1286, 150));
+				g2D.setColor(Color.RED);
+				g2D.setFont(new Font("Monospaced", Font.BOLD, 140));
+				g2D.drawString("You Won!",300,move+110);
 			}
 		}
 	}
@@ -178,6 +228,9 @@ public class GUI extends JFrame{
 		}
 		@Override
 		public void mousePressed(MouseEvent e) {
+			if(!timeStart)
+				time = (int) (System.currentTimeMillis()/1000);
+			timeStart=true;
 			if(inSmiley())
 				reset();
 			if(!newGame) {
@@ -201,6 +254,7 @@ public class GUI extends JFrame{
 					}
 					sol = true;
 					newGame=true;
+					pause=true;
 				}
 				if(inBoxY()!=-1&&inBoxX()!=-1&&e.getButton()== MouseEvent.BUTTON1&&!flagged[inBoxY()][inBoxX()]) {
 					revealed[inBoxY()][inBoxX()] = true;
@@ -210,9 +264,9 @@ public class GUI extends JFrame{
 						while(!X.isEmpty()) {
 							revealed[Y.get(0)][X.get(0)] = true;
 							// y
-							for(int i=1;Y.get(0)+i<9;i++) {
+							for(int i=1;Y.get(0)+i<9&&!flagged[Y.get(0)+i][X.get(0)];i++) {
 								
-								if(neighbours[Y.get(0)+i][X.get(0)]==0&&!revealed[Y.get(0)+i][X.get(0)]) {
+								if(neighbours[Y.get(0)+i][X.get(0)]==0&&!revealed[Y.get(0)+i][X.get(0)]) { //flagged will not be revealed
 									X.add(X.get(0));
 									Y.add(Y.get(0)+i);
 								}
@@ -222,7 +276,7 @@ public class GUI extends JFrame{
 								}
 							}
 							// -y
-							for(int i=-1;Y.get(0)+i>=0;i--) {
+							for(int i=-1;Y.get(0)+i>=0&&!flagged[Y.get(0)+i][X.get(0)];i--) {
 								
 								if(neighbours[Y.get(0)+i][X.get(0)]==0&&!revealed[Y.get(0)+i][X.get(0)]) {
 									X.add(X.get(0));
@@ -234,7 +288,7 @@ public class GUI extends JFrame{
 								}
 							}
 							// x
-							for(int i=1;X.get(0)+i<16;i++) {
+							for(int i=1;X.get(0)+i<16&&!flagged[Y.get(0)][X.get(0)+i];i++) {
 								
 								if(neighbours[Y.get(0)][X.get(0)+i]==0&&!revealed[Y.get(0)][X.get(0)+i]) {
 									X.add(X.get(0)+i);
@@ -246,7 +300,7 @@ public class GUI extends JFrame{
 								}
 							}
 							// -x
-							for(int i=-1;X.get(0)+i>=0;i--) {
+							for(int i=-1;X.get(0)+i>=0&&!flagged[Y.get(0)][X.get(0)+i];i--) {
 								
 								if(neighbours[Y.get(0)][X.get(0)+i]==0&&!revealed[Y.get(0)][X.get(0)+i]) {
 									X.add(X.get(0)+i);
@@ -258,7 +312,7 @@ public class GUI extends JFrame{
 								}
 							}
 							// x y
-							for(int i=1;Y.get(0)+i<9&&X.get(0)+i<16;i++) {
+							for(int i=1;Y.get(0)+i<9&&X.get(0)+i<16&&!flagged[Y.get(0)+i][X.get(0)+i];i++) {
 								
 								if(neighbours[Y.get(0)+i][X.get(0)+i]==0&&!revealed[Y.get(0)+i][X.get(0)+i]) {
 									X.add(X.get(0)+i);
@@ -270,7 +324,7 @@ public class GUI extends JFrame{
 								}
 							}
 							// -x y
-							for(int i=-1,j=1;Y.get(0)+i>=0&&X.get(0)+j<16;i--,j++) {
+							for(int i=-1,j=1;Y.get(0)+i>=0&&X.get(0)+j<16&&!flagged[Y.get(0)+i][X.get(0)+j];i--,j++) {
 								
 								if(neighbours[Y.get(0)+i][X.get(0)+j]==0&&!revealed[Y.get(0)+i][X.get(0)+j]) {
 									X.add(X.get(0)+j);
@@ -282,7 +336,7 @@ public class GUI extends JFrame{
 								}
 							}
 							// x -y
-							for(int i=1,j=-1;Y.get(0)+i<9&&X.get(0)+j>=02;i++,j--) {
+							for(int i=1,j=-1;Y.get(0)+i<9&&X.get(0)+j>=0&&!flagged[Y.get(0)+i][X.get(0)+j];i++,j--) {
 								
 								if(neighbours[Y.get(0)+i][X.get(0)+j]==0&&!revealed[Y.get(0)+i][X.get(0)+j]) {
 									X.add(X.get(0)+j);
@@ -294,7 +348,7 @@ public class GUI extends JFrame{
 								}
 							}
 							// -x -y
-							for(int i=-1;Y.get(0)+i>=0&&X.get(0)+i>=0;i--) {
+							for(int i=-1;Y.get(0)+i>=0&&X.get(0)+i>=0&&!flagged[Y.get(0)+i][X.get(0)+i];i--) {
 								
 								if(neighbours[Y.get(0)+i][X.get(0)+i]==0&&!revealed[Y.get(0)+i][X.get(0)+i]) {
 									X.add(X.get(0)+i);
@@ -308,8 +362,6 @@ public class GUI extends JFrame{
 							
 							X.remove(0);
 							Y.remove(0);
-							//X.clear();
-							//Y.clear();
 						}
 					}
 					if(inBoxY()!=-1&&inBoxX()!=-1&&mines[inBoxY()][inBoxX()]) {
@@ -323,8 +375,14 @@ public class GUI extends JFrame{
 						}
 						newGame=true;
 						happy = false;
+						//timeStart=false;
+						pause=true;
 					}
 				}
+			}
+			//checkRevealed();
+			if(victory()) {
+				win=true;
 			}
 		}
 		@Override
@@ -357,16 +415,23 @@ public class GUI extends JFrame{
 			else
 				return false;
 		}
-		
+
 		public void reset() {
+			pause=false;
+			timeStart = false;
 			newGame = false;
+			win = false;
+			nMine=0;
+			nReveal=0;
 			sol = false;
 			happy = true;
 			for(int i=0;i<9;i++) {
 				for(int j=0;j<16;j++) {
 					neighbours[i][j]=0;
-					if(rand.nextInt(100)<20)
+					if(rand.nextInt(100)<20) {
 						mines[i][j]=true;
+						nMine++;
+					}
 					else
 						mines[i][j]=false;
 					revealed[i][j] = false;
@@ -385,6 +450,32 @@ public class GUI extends JFrame{
 					}
 				}
 			}
+		}
+		
+		public int checkRevealed() {
+			nReveal=0;
+			for(int i=0;i<9;i++)
+				for(int j=0;j<16;j++)
+					if(revealed[i][j])
+						nReveal++;
+			return nReveal;
+		}
+		public int checkWin() {
+			int no=0;
+			for(int i=0;i<9;i++)
+				for(int j=0;j<16;j++)
+					if(flagged[i][j]&&mines[i][j])
+						no++;
+			return no;
+		}
+		public boolean victory() {
+			if(checkWin()==nMine&&checkRevealed()==144-nMine) {
+				newGame=true;
+				happy = true;
+				pause=true;
+				return true;
+			}
+			return false;
 		}
 	}
 }
